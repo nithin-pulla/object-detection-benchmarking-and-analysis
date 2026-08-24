@@ -1,38 +1,67 @@
 # object-detection-benchmarking-and-analysis
 
-## 📁 Dataset Setup (Pascal VOC 2012)
+Standardized benchmarking framework for SSD300, Faster R-CNN, and YOLOv5 on Pascal VOC 2012.
 
-1. **Download** the official Pascal VOC 2012 dataset:
-   ```bash
-   # If you're on macOS and don't have wget, first install it using Homebrew:
-   # brew install wget
-   wget http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
-   ```
+## Dataset setup (Pascal VOC 2012)
 
-2. **Extract the Dataset**  
-   After downloading, create a `data/` directory (if it doesn’t exist) and extract the contents into it using:
-   ```bash
-   mkdir -p data/
-   tar -xvf VOCtrainval_11-May-2012.tar -C data/
-   ```
+1. Download dataset:
+```bash
+wget http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
+```
+2. Extract dataset:
+```bash
+mkdir -p data/
+tar -xvf VOCtrainval_11-May-2012.tar -C data/
+```
+3. Expected structure:
+```
+data/
+└── VOCdevkit/
+    └── VOC2012/
+        ├── JPEGImages/
+        ├── Annotations/
+        └── ImageSets/
+```
 
-3. **Verify Directory Structure**  
-   Once extracted, your folder structure should look like this:
-   ```
-   data/
-   └── VOCdevkit/
-       └── VOC2012/
-           ├── JPEGImages/      ← Contains image files
-           ├── Annotations/     ← XML annotation files
-           ├── ImageSets/       ← Text files defining train/val/test splits
-           ├── SegmentationClass/
-           └── ...
-   ```
+## Standard benchmark architecture
 
-4. **Exclude Dataset from Git**  
-   The dataset is large and should not be committed to version control. Add the following lines to your `.gitignore`:
-   ```
-   # .gitignore
-   data/VOCdevkit/
-   *.tar
-   ```
+Pipeline:
+
+`Dataset → Config → Model Adapter → Inference Runner → Standardized Evaluator → Timing Profiler → Visualization/Artifacts → Comparison Aggregator → Report outputs`
+
+Framework code is under `/benchmark`, and any notebooks should be thin wrappers only.
+
+## Canonical config and runs
+
+Main config files:
+- `/home/runner/work/object-detection-benchmarking-and-analysis/object-detection-benchmarking-and-analysis/benchmark/configs/default.yaml`
+- `/home/runner/work/object-detection-benchmarking-and-analysis/object-detection-benchmarking-and-analysis/benchmark/configs/paper_main.yaml`
+
+Run full benchmark:
+```bash
+python -m benchmark.run_benchmark --config benchmark/configs/default.yaml
+```
+
+Run standardized 20-image comparison:
+```bash
+python -m benchmark.run_comparison20 --config benchmark/configs/default.yaml
+```
+
+Aggregate one run directory:
+```bash
+python -m benchmark.aggregate_results --results-root results/<run_id>
+```
+
+## Standardization guarantees
+
+- Shared adapter interface for all models.
+- Shared metrics implementation (`mAP@0.5`, `mAP@0.5:0.95`, precision, recall).
+- Shared timing protocol (`preprocessing_ms`, `inference_ms`, `postprocessing_ms`, `total_ms`).
+- Shared 20-image protocol via `comparison_images.json`.
+- Shared output schema and run metadata capture.
+
+## Notes
+
+- `comparison_images.json` is the canonical image list and order for 20-image comparison runs.
+- Results are written to `results/<run_id>/<model>/metrics.json` plus summary artifacts.
+- Dataset files and tar archives should remain excluded from Git.
